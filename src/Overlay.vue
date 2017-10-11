@@ -1,7 +1,12 @@
 <template>
-    <div class="overlay" style="" v-if="show">
+    <div class="overlay" style="" v-if="show" v-on:click="handleHide()">
         <div class="overlay-content">
-            <h3><slot>Working...</slot></h3>
+            <div v-if="imageUrl">
+                <h3><slot>Working...</slot></h3>
+            </div>
+            <div v-else>
+                <img :src="img" alt="">
+            </div>
         </div>
     </div>
 </template>
@@ -20,13 +25,32 @@
       indeterminate: {
         type: Boolean,
         default: true
-      }
+      },
 
+      img: {
+        type: String,
+      },
+
+      handleHide: {
+        type: Function
+      }
     },
 
     data() {
       return {
-        show: false
+        show: false,
+        imageUrl: null,
+      }
+    },
+
+    computed: {
+      imageLoaded() {
+        let i = new Image()
+        i.src= this.img // requested img passed in as props
+        console.log(i.src)
+        i.onload = () => {
+          return true
+        }
       }
     },
 
@@ -51,12 +75,12 @@
 <style scoped>
     .overlay {
         display: block;
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         z-index: 1000;
-        width: 100vw;
-        height: 100vh;
+        width: 100%;
+        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
