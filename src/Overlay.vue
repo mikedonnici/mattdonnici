@@ -1,8 +1,8 @@
 <template>
     <div class="overlay" style="" v-if="show" v-on:click="handleHide()">
         <div class="overlay-content">
-            <div v-if="imageUrl">
-                <h3><slot>Working...</slot></h3>
+            <div v-if="!imageLoaded">
+                <slot>Working...</slot>
             </div>
             <div v-else>
                 <img :src="img" alt="">
@@ -13,24 +13,21 @@
 
 <script>
   export default {
-    props: {
 
+    props: {
       // how long to show the overlay for, default is infinite
       duration: {
         type: Number,
         default: -1
       },
-
       // show the 'indeterminate' progress bar, default true
       indeterminate: {
         type: Boolean,
         default: true
       },
-
       img: {
         type: String,
       },
-
       handleHide: {
         type: Function
       }
@@ -39,17 +36,21 @@
     data() {
       return {
         show: false,
-        imageUrl: null,
+        imageReady: false
       }
     },
 
     computed: {
-      imageLoaded() {
-        let i = new Image()
-        i.src= this.img // requested img passed in as props
-        console.log(i.src)
-        i.onload = () => {
-          return true
+      imageLoaded: {
+        get() {
+          return this.imageReady
+        },
+        set(imgUrl) {
+          let i = new Image()
+          i.src= imgUrl
+          i.onload = () => {
+            this.imageReady = true
+          }
         }
       }
     },
@@ -58,11 +59,13 @@
       // switch it on...
       this.show = true
 
+      // run setter
+      this.imageLoaded = this.img
+
       // show forever...
       if (this.duration < 0) {
         return
       }
-
       // ... or switch off after the specified duration
       const d = this.duration * 1000 // milliseconds
       setTimeout(() => {
@@ -84,11 +87,20 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        background-color: rgba(0,0,0, 0.5);
+        background-color: rgba(0,0,0, 0.8);
     }
     .overlay-content {
-        width: 50vw;
+        width: 100vw;
         text-align: center;
         color: #ddd;
+    }
+
+    img {
+        max-width: 98vw;
+        max-height: 98vh;
+    }
+
+    .fade-enter-active, .fade-leave-active {
+        transition: opacity 5s;
     }
 </style>

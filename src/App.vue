@@ -1,14 +1,36 @@
 <template>
     <div id="app">
-        <app-overlay v-if="overlay" v-bind:img="overlayImage" :handleHide="hide"></app-overlay>
-        <div class="gallery-container" v-for="gallery in galleries">
-            <div class="gallery-title"><h1>{{ gallery.name }}</h1></div>
-            <div class="gallery">
-                <div class="gallery-item" v-for="(image, index) in gallery.images" key="index">
-                    <img :src="image.src" alt="" v-on:click="show(image.url3)">
+        <header>
+            <h1>Matt Donnici</h1>
+            <h2>digital artist</h2>
+            <p>Hi, I am a freelance digital artist based on the south coast of NSW, Australia.</p>
+            <p>If you'd like to discuss a project, please get in touch:</p>
+            <ul>
+                <li><a href="mailto:matthew@mesa.net.au">hi@mattdonnici.com</a></li>
+                <li>skype: matthew.donnici</li>
+            </ul>
+            <p>Below are some examples of my work, or you can grab my
+                <a href="" target="_blank">Portfolio</a> (pdf).</p>
+        </header>
+        <main>
+            <app-overlay v-if="overlay" v-bind:img="overlayImage" :handleHide="hide">
+                <img src="static/loading.gif">
+            </app-overlay>
+            <div class="gallery-container" v-for="gallery in galleries">
+                <div class="gallery-title">{{ gallery.name }}</div>
+                <div class="gallery">
+                        <div class="gallery-item" v-for="(image, index) in gallery.images" key="index">
+                            <transition-group name="fade">
+                                <img :src="image.src" alt="" v-on:click="show(image.url3)" key="index">
+                            </transition-group>
+                        </div>
                 </div>
             </div>
-        </div>
+        </main>
+        <footer>
+            <p>&copy; matt donnici</p>
+            <p>site by <a href="https://mikedonnici.github.io" target="_blank">mike</a></p>
+        </footer>
     </div>
 </template>
 
@@ -68,7 +90,6 @@
             }
           })
         })
-        console.log(this.galleries)
       },
 
       // generate the image urls using cloudinary api
@@ -80,19 +101,44 @@
         //return this.cloudinary.imageTag(tag).transformation().crop('scale').width(400).toHtml()
         // this generates the image url only
         return this.cloudinary.url(tag, transformation)
+      },
+
+      shuffle(array) {
+        var currentIndex = array.length, temporaryValue, randomIndex;
+
+        // While there remain elements to shuffle...
+        while (0 !== currentIndex) {
+
+          // Pick a remaining element...
+          randomIndex = Math.floor(Math.random() * currentIndex);
+          currentIndex -= 1;
+
+          // And swap it with the current element.
+          temporaryValue = array[currentIndex];
+          array[currentIndex] = array[randomIndex];
+          array[randomIndex] = temporaryValue;
+        }
+
+        return array;
       }
+
     },
 
     created() {
-      console.log('created setting up the image urls...')
+
       this.galleries.forEach((gallery) => {
+        // Set up the image object for the gallery
         gallery.images.forEach((image) => {
           image.url1 = this.createUrl(image.tag, {crop: "scale", quality: 20, width: 300, effect: "blackwhite"}) // super lo res
           image.url2 = this.createUrl(image.tag, {crop: "scale", quality: 80, width: 300}) // colour, higher res
-          image.url3 = this.createUrl(image.tag, {crop: "scale", quality: 90, width: 800}) // full size for pop up
+          image.url3 = this.createUrl(image.tag, {crop: "scale", quality: 90, width: 1200}) // full size for pop up
           // The initial src from the image will be url1
           image.src = image.url1
         })
+
+        // Then shuffle them to keep it interesting
+        gallery.images = this.shuffle(gallery.images)
+
       })
     },
 
@@ -106,23 +152,58 @@
   }
 </script>
 
-<style scoped>
+<style>
+    body {
+        padding: 20px;
+        background-color: #232323;
+        font-family: 'Noto Sans', sans-serif;
+        color: #e5e5e5;
+    }
+
+    header {
+    }
+
+    header h1 {
+        margin-bottom: 0;
+        font-size: 5rem;
+    }
+
+    header h2 {
+        font-size: 2rem;
+        margin-top: 0;
+    }
+    footer {
+        text-align: right;
+        opacity: 0.8;
+    }
+
+    a {
+        color: skyblue;
+        text-decoration: none;
+    }
+
+    a:hover {
+        color: lightblue;
+        text-decoration: underline;
+    }
+
     #app {
 
     }
+
     .gallery-container {
-        background-color: #232323;
-        padding: 20px;
+
     }
+
     .gallery-title {
         display: flex;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
         width: 100%;
         height: 100px;
-        /*border: solid 3px whitesmoke;*/
-        /*border-radius: 5px;*/
-        color: whitesmoke;
+        color: #e5e5e5;
+        font-size: 2.6rem;
+        font-style: italic;
     }
 
     .gallery {
@@ -160,16 +241,21 @@
 
     .gallery-item img {
         width: 100%;
-        transition: .8s opacity;
     }
 
     .gallery-item:hover img {
-        opacity: 0.4;
+        cursor: pointer;
+        /*opacity: 0.4;*/
     }
 
-    .gallery-item:hover img:hover {
-        opacity: 1;
+    /*.gallery-item:hover img:hover {*/
+        /*opacity: 1;*/
+    /*}*/
+
+    .fade-enter-active, .fade-leave-active {
+        transition: opacity 1s;
     }
-
-
+    .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+        opacity: 0
+    }
 </style>
