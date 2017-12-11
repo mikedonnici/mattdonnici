@@ -33,8 +33,8 @@
 
 <script>
     import cloudinary from 'cloudinary-core'
+    import { EventBus } from './main'
     import Overlay from './Overlay.vue'
-    import Galleries from './galleries'
 
     export default {
 
@@ -46,29 +46,79 @@
             return {
                 overlay: false,
                 overlayImage: null,
-                galleries: Galleries,
+                galleries: null,
                 cloudinary: null,
+
+                // testGalleries: [
+                //     {"name": "anatomy", "count": 13, images[
+                //             {tag: "", url1: "", url2: "", url3: "", src: ""},
+                //         ]},
+                //     {"name": "characters", "count": 19},
+                //     {"name": "landscape", "count": 10},
+                //     {"name": "3D", "count": 15}
+                // ],
             }
         },
 
+
         methods: {
-            show(imageUrl) {
-                this.overlayImage = imageUrl
-                this.overlay = true
-            },
-            hide() {
-                this.overlayImage = ''
-                this.overlay = false
+
+            fetchGalleries() {
+
+                let galleries = []
+
+                fetch('static/galleries.json')
+                    .then( r => r.json())
+                    .then((data) => {
+
+                        for (let i = 0; i < data.length; i++) {
+
+                            galleries[i] = data[i]
+                            galleries[i].images = []
+                            for (let j = 0; j < galleries[i].total; j++) {
+                                const tag = `mattdonnici/${galleries[i].name}_${j+1}.jpg`
+                                const url1 = this.createUrl(tag, {crop: "scale", quality: 20, width: 300, effect: "blackwhite"}) // super lo res
+                                const url2 = this.createUrl(tag, {crop: "scale", quality: 80, width: 300}) // colour, higher res
+                                const url3 = this.createUrl(tag, {crop: "scale", quality: 90, width: 1200}) // full size for pop up
+                                const img = {
+                                    tag: tag,
+                                    url1: url1,
+                                    url2: url2,
+                                    url3: url3,
+                                    src: url1, // Initial src
+                                }
+                                galleries[i].images[j] = img
+                            }
+
+                            // shuffle the images
+                            galleries[i].images = this.shuffle(galleries[i].images)
+
+                        }
+
+                        // shuffle the galleries
+                        this.galleries = this.shuffle(galleries)
+
+                        // yell out so proper image loading can start
+                        EventBus.$emit("loadImages", true)
+
+
+
+                    })
+                    .catch((r) => {
+                        console.log("Error configuring galleries using JSON data")
+                        console.log("Response:", r)
+                    })
+
             },
 
             // Loads the higher res images at .url2
             loadImages() {
                 console.log("Loading better images....")
-
                 // Loop through all of the images and replace with the hi res version once they are downloaded
                 this.galleries.forEach((gallery, gi) => {
-                    gallery.images.forEach((image, ii) => {
+                    console.log(gi, gallery["name"])
 
+                    gallery.images.forEach((image, ii) => {
                         // Vue cannot detect certain changes to existing arrays and objects.
                         // See https://vuejs.org/v2/guide/list.html#Caveats
                         // So create a new imageObject and use splice() so that Vue will react
@@ -78,7 +128,7 @@
                             url3: image.url3,
                             src: image.url2 // updated src
                         }
-                        // Fetch the new image, and when don update the image object
+                        // Fetch the new image, and when done update the image object
                         let newImage = new Image()
                         newImage.src = image.url2 // url2 is better resolution
                         newImage.onload = () => {
@@ -100,7 +150,7 @@
             },
 
             shuffle(array) {
-                var currentIndex = array.length, temporaryValue, randomIndex;
+                let currentIndex = array.length, temporaryValue, randomIndex;
 
                 // While there remain elements to shuffle...
                 while (0 !== currentIndex) {
@@ -116,39 +166,29 @@
                 }
 
                 return array;
-            }
+            },
+
+            show(imageUrl) {
+                this.overlayImage = imageUrl
+                this.overlay = true
+            },
+
+            hide() {
+                this.overlayImage = ''
+                this.overlay = false
+            },
 
         },
 
-        created() {
-
-            this.galleries.forEach((gallery) => {
-                // Set up the image object for the gallery
-                gallery.images.forEach((image) => {
-                    image.url1 = this.createUrl(image.tag, {
-                        crop: "scale",
-                        quality: 20,
-                        width: 300,
-                        effect: "blackwhite"
-                    }) // super lo res
-                    image.url2 = this.createUrl(image.tag, {crop: "scale", quality: 80, width: 300}) // colour, higher res
-                    image.url3 = this.createUrl(image.tag, {crop: "scale", quality: 90, width: 1200}) // full size for pop up
-                    // The initial src from the image will be url1
-                    image.src = image.url1
-                })
-
-                // Then shuffle them to keep it interesting
-                gallery.images = this.shuffle(gallery.images)
-
-            })
+        beforeMount() {
+           this.fetchGalleries()
         },
 
         mounted() {
-            console.log("mounted loading higher quality images...")
-            this.loadImages()
-            console.log("galleries:")
-            console.log(this.galleries)
-
+            // Listen for the call to start loading better images
+            EventBus.$on("loadImages", () => {
+                this.loadImages()
+            })
         },
     }
 </script>
